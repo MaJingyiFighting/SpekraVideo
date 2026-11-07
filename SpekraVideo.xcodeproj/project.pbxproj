@@ -1,0 +1,381 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		100000000000000000000001 /* SpekraVideoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* SpekraVideoApp.swift */; };
+		100000000000000000000002 /* CameraMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* CameraMainView.swift */; };
+		100000000000000000000003 /* MetalPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* MetalPreviewView.swift */; };
+		100000000000000000000004 /* LogCameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* LogCameraController.swift */; };
+		100000000000000000000005 /* SpectralFilmMetalEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000005 /* SpectralFilmMetalEngine.swift */; };
+		100000000000000000000006 /* SpectralDatabaseGenerated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000006 /* SpectralDatabaseGenerated.swift */; };
+		100000000000000000000007 /* SpectralFilmShaders.msl in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000007 /* SpectralFilmShaders.msl */; };
+		100000000000000000000008 /* engine in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000008 /* engine */; };
+		100000000000000000000010 /* SpektraCoreBridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000010 /* SpektraCoreBridge.cpp */; };
+		100000000000000000000011 /* blob.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* blob.cpp */; };
+		100000000000000000000012 /* cam16.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000012 /* cam16.cpp */; };
+		100000000000000000000013 /* colour.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000013 /* colour.cpp */; };
+		100000000000000000000014 /* curves.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000014 /* curves.cpp */; };
+		100000000000000000000015 /* digital_intermediate.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000015 /* digital_intermediate.cpp */; };
+		100000000000000000000016 /* hanatos.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000016 /* hanatos.cpp */; };
+		100000000000000000000017 /* json.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000017 /* json.cpp */; };
+		100000000000000000000018 /* latitude_fit.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000018 /* latitude_fit.cpp */; };
+		100000000000000000000019 /* numeric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000019 /* numeric.cpp */; };
+		100000000000000000000020 /* params.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000020 /* params.cpp */; };
+		100000000000000000000021 /* print_lut.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000021 /* print_lut.cpp */; };
+		100000000000000000000022 /* printing.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000022 /* printing.cpp */; };
+		100000000000000000000023 /* profile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000023 /* profile.cpp */; };
+		100000000000000000000024 /* setup_cache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000024 /* setup_cache.cpp */; };
+		100000000000000000000025 /* spectral.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000025 /* spectral.cpp */; };
+		100000000000000000000026 /* ProPurchaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000026 /* ProPurchaseManager.swift */; };
+		100000000000000000000027 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000027 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		200000000000000000000001 /* SpekraVideoApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "SpekraVideo/Sources/SpekraVideoApp.swift"; sourceTree = "<group>"; };
+		200000000000000000000002 /* CameraMainView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "SpekraVideo/Sources/CameraMainView.swift"; sourceTree = "<group>"; };
+		200000000000000000000003 /* MetalPreviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "SpekraVideo/Sources/MetalPreviewView.swift"; sourceTree = "<group>"; };
+		200000000000000000000004 /* LogCameraController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "SpekraVideo/Sources/LogCameraController.swift"; sourceTree = "<group>"; };
+		200000000000000000000005 /* SpectralFilmMetalEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "SpekraVideo/Sources/SpectralFilmMetalEngine.swift"; sourceTree = "<group>"; };
+		200000000000000000000006 /* SpectralDatabaseGenerated.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "SpekraVideo/Sources/SpectralDatabaseGenerated.swift"; sourceTree = "<group>"; };
+		200000000000000000000007 /* SpectralFilmShaders.msl */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "SpekraVideo/Resources/SpectralFilmShaders.msl"; sourceTree = "<group>"; };
+		200000000000000000000008 /* engine */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder; path = "SpekraVideo/Resources/engine"; sourceTree = "<group>"; };
+		200000000000000000000009 /* SpektraCoreBridge.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "SpekraVideo/Sources/SpektraCoreBridge.h"; sourceTree = "<group>"; };
+		200000000000000000000010 /* SpektraCoreBridge.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "SpekraVideo/Sources/SpektraCoreBridge.cpp"; sourceTree = "<group>"; };
+		200000000000000000000011 /* blob.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/blob.cpp"; sourceTree = "<group>"; };
+		200000000000000000000012 /* cam16.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/cam16.cpp"; sourceTree = "<group>"; };
+		200000000000000000000013 /* colour.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/colour.cpp"; sourceTree = "<group>"; };
+		200000000000000000000014 /* curves.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/curves.cpp"; sourceTree = "<group>"; };
+		200000000000000000000015 /* digital_intermediate.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/digital_intermediate.cpp"; sourceTree = "<group>"; };
+		200000000000000000000016 /* hanatos.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/hanatos.cpp"; sourceTree = "<group>"; };
+		200000000000000000000017 /* json.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/json.cpp"; sourceTree = "<group>"; };
+		200000000000000000000018 /* latitude_fit.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/latitude_fit.cpp"; sourceTree = "<group>"; };
+		200000000000000000000019 /* numeric.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/numeric.cpp"; sourceTree = "<group>"; };
+		200000000000000000000020 /* params.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/params.cpp"; sourceTree = "<group>"; };
+		200000000000000000000021 /* print_lut.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/print_lut.cpp"; sourceTree = "<group>"; };
+		200000000000000000000022 /* printing.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/printing.cpp"; sourceTree = "<group>"; };
+		200000000000000000000023 /* profile.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/profile.cpp"; sourceTree = "<group>"; };
+		200000000000000000000024 /* setup_cache.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/setup_cache.cpp"; sourceTree = "<group>"; };
+		200000000000000000000025 /* spectral.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "engine/src/core/spectral.cpp"; sourceTree = "<group>"; };
+		DDD5B8E3A394D3A998B477FA /* SpekraVideo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpekraVideo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		200000000000000000000026 /* ProPurchaseManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "SpekraVideo/Sources/ProPurchaseManager.swift"; sourceTree = "<group>"; };
+		200000000000000000000027 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = "SpekraVideo/Resources/Assets.xcassets"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AE83AC23F77ABEDF552EB8D3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		612CB24D45FD4CCFD5D7E7EA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DDD5B8E3A394D3A998B477FA /* SpekraVideo.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D26569027870CEC3EE6C9A5D = {
+			isa = PBXGroup;
+			children = (
+				612CB24D45FD4CCFD5D7E7EA /* Products */,
+				200000000000000000000001 /* SpekraVideoApp.swift */,
+				200000000000000000000002 /* CameraMainView.swift */,
+				200000000000000000000003 /* MetalPreviewView.swift */,
+				200000000000000000000004 /* LogCameraController.swift */,
+				200000000000000000000005 /* SpectralFilmMetalEngine.swift */,
+				200000000000000000000006 /* SpectralDatabaseGenerated.swift */,
+				200000000000000000000007 /* SpectralFilmShaders.msl */,
+				200000000000000000000008 /* engine */,
+				200000000000000000000009 /* SpektraCoreBridge.h */,
+				200000000000000000000010 /* SpektraCoreBridge.cpp */,
+				200000000000000000000011 /* blob.cpp */,
+				200000000000000000000012 /* cam16.cpp */,
+				200000000000000000000013 /* colour.cpp */,
+				200000000000000000000014 /* curves.cpp */,
+				200000000000000000000015 /* digital_intermediate.cpp */,
+				200000000000000000000016 /* hanatos.cpp */,
+				200000000000000000000017 /* json.cpp */,
+				200000000000000000000018 /* latitude_fit.cpp */,
+				200000000000000000000019 /* numeric.cpp */,
+				200000000000000000000020 /* params.cpp */,
+				200000000000000000000021 /* print_lut.cpp */,
+				200000000000000000000022 /* printing.cpp */,
+				200000000000000000000023 /* profile.cpp */,
+				200000000000000000000024 /* setup_cache.cpp */,
+				200000000000000000000025 /* spectral.cpp */,
+				200000000000000000000026 /* ProPurchaseManager.swift */,
+				200000000000000000000027 /* Assets.xcassets */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		262920596D4FD852E82D523A /* SpekraVideo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DCF031769760FF9F00A1FD3D /* Build configuration list for PBXNativeTarget "SpekraVideo" */;
+			buildPhases = (
+				A77958FA767EC06C9F68BB43 /* Sources */,
+				AE83AC23F77ABEDF552EB8D3 /* Frameworks */,
+				EC98EA46CE690FEFD322CD56 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SpekraVideo;
+			productName = SpekraVideo;
+			productReference = DDD5B8E3A394D3A998B477FA /* SpekraVideo.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9F61752DF8BF15CC5D9C4886 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = F950CE0989CA6C7B2E0D7F7B /* Build configuration list for PBXProject "SpekraVideo" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = zh-Hans;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				"zh-Hans",
+				en,
+				Base,
+			);
+			mainGroup = D26569027870CEC3EE6C9A5D;
+			minimizedProjectReferenceProxies = 0;
+			preferredProjectObjectVersion = 100;
+			productRefGroup = 612CB24D45FD4CCFD5D7E7EA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				262920596D4FD852E82D523A /* SpekraVideo */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		EC98EA46CE690FEFD322CD56 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000007 /* SpectralFilmShaders.msl in Resources */,
+				100000000000000000000008 /* engine in Resources */,
+				100000000000000000000027 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A77958FA767EC06C9F68BB43 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000001 /* SpekraVideoApp.swift in Sources */,
+				100000000000000000000002 /* CameraMainView.swift in Sources */,
+				100000000000000000000003 /* MetalPreviewView.swift in Sources */,
+				100000000000000000000004 /* LogCameraController.swift in Sources */,
+				100000000000000000000005 /* SpectralFilmMetalEngine.swift in Sources */,
+				100000000000000000000006 /* SpectralDatabaseGenerated.swift in Sources */,
+				100000000000000000000026 /* ProPurchaseManager.swift in Sources */,
+				100000000000000000000010 /* SpektraCoreBridge.cpp in Sources */,
+				100000000000000000000011 /* blob.cpp in Sources */,
+				100000000000000000000012 /* cam16.cpp in Sources */,
+				100000000000000000000013 /* colour.cpp in Sources */,
+				100000000000000000000014 /* curves.cpp in Sources */,
+				100000000000000000000015 /* digital_intermediate.cpp in Sources */,
+				100000000000000000000016 /* hanatos.cpp in Sources */,
+				100000000000000000000017 /* json.cpp in Sources */,
+				100000000000000000000018 /* latitude_fit.cpp in Sources */,
+				100000000000000000000019 /* numeric.cpp in Sources */,
+				100000000000000000000020 /* params.cpp in Sources */,
+				100000000000000000000021 /* print_lut.cpp in Sources */,
+				100000000000000000000022 /* printing.cpp in Sources */,
+				100000000000000000000023 /* profile.cpp in Sources */,
+				100000000000000000000024 /* setup_cache.cpp in Sources */,
+				100000000000000000000025 /* spectral.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		7757E797605F0FB635CA07BF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 2;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/SpekraVideo/Sources",
+					"$(SRCROOT)/engine/include",
+					"$(SRCROOT)/engine/src",
+					"$(SRCROOT)/engine/src/core",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_BRIDGING_HEADER = "SpekraVideo/Sources/SpekraVideo-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		94ECBFADFF29A0617BBDA928 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 2;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/SpekraVideo/Sources",
+					"$(SRCROOT)/engine/include",
+					"$(SRCROOT)/engine/src",
+					"$(SRCROOT)/engine/src/core",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OBJC_BRIDGING_HEADER = "SpekraVideo/Sources/SpekraVideo-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D686195FF222B26034ADE694 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/SpekraVideo/Sources",
+					"$(SRCROOT)/engine/include",
+					"$(SRCROOT)/engine/src",
+					"$(SRCROOT)/engine/src/core",
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = SpekraVideo;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "用于实时采集 Apple Log 视频流并进行光谱胶片与相纸渲染";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于在录制胶片视频时同步录制现场声音";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将录制完成的胶片视频与 Apple Log 原片保存到系统相册";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.spekravideo.cam;
+				SDKROOT = iphoneos;
+				SWIFT_OBJC_BRIDGING_HEADER = "SpekraVideo/Sources/SpekraVideo-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F102E63D50C0A27036CD483B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/SpekraVideo/Sources",
+					"$(SRCROOT)/engine/include",
+					"$(SRCROOT)/engine/src",
+					"$(SRCROOT)/engine/src/core",
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = SpekraVideo;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "用于实时采集 Apple Log 视频流并进行光谱胶片与相纸渲染";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "用于在录制胶片视频时同步录制现场声音";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将录制完成的胶片视频与 Apple Log 原片保存到系统相册";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.spekravideo.cam;
+				SDKROOT = iphoneos;
+				SWIFT_OBJC_BRIDGING_HEADER = "SpekraVideo/Sources/SpekraVideo-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DCF031769760FF9F00A1FD3D /* Build configuration list for PBXNativeTarget "SpekraVideo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D686195FF222B26034ADE694 /* Release */,
+				F102E63D50C0A27036CD483B /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F950CE0989CA6C7B2E0D7F7B /* Build configuration list for PBXProject "SpekraVideo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7757E797605F0FB635CA07BF /* Debug */,
+				94ECBFADFF29A0617BBDA928 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9F61752DF8BF15CC5D9C4886 /* Project object */;
+}

@@ -1,0 +1,842 @@
+#include <metal_stdlib>
+using namespace metal;
+
+// ============================================================================
+// 1. Apple Log 官方白皮书精确逆变换 (Apple Log Profile White Paper)
+// ============================================================================
+inline float apple_log_to_linear(float p) {
+    const float R0    = -0.05641088f;
+    const float c     = 47.28711236f;
+    const float beta  = 0.00964052f;
+    const float gamma = 0.08550479f;
+    const float delta = 0.69336945f;
+    const float Pt    = 0.20855532f; // c * (0.01 - R0)^2
+    if (p <= 0.0f) {
+        return R0;
+    } else if (p < Pt) {
+        return sqrt(p / c) + R0;
+    } else {
+        return exp2((p - delta) / gamma) - beta;
+    }
+}
+
+// ============================================================================
+// 2. 原版 spk_common.h 与 nodes.metal 数学函数 (移植自 SpektraLab)
+// ============================================================================
+inline float spow(float v, float p) {
+    float s = v < 0.0f ? -1.0f : (v > 0.0f ? 1.0f : 0.0f);
+    return s * pow(fabs(v), p);
+}
+
+inline float cctf_decode_srgb(float v) {
+    return (0.040449936f >= v) ? (v / 12.92f) : spow((v + 0.055f) / 1.055f, 2.4f);
+}
+
+inline float cctf_encode_srgb(float v) {
+    return (v <= 0.0031308f) ? (12.92f * v) : (1.055f * spow(v, 1.0f / 2.4f) - 0.055f);
+}
+
+// SpektraLab 的 256 点 log_exposure 轴严格均匀分布，O(1) 直接索引
+inline float interp_uniform_256(device const float* xa, device const float* y, uint c, float v) {
+    float x0 = xa[c];
+    float xN = xa[255u * 3u + c];
+    float pos = clamp((v - x0) / (xN - x0) * 255.0f, 0.0f, 255.0f);
+    uint low = min(uint(pos), 254u);
+    float t = pos - float(low);
+    float y0 = y[low * 3u + c];
+    float y1 = y[(low + 1u) * 3u + c];
+    return y0 + t * (y1 - y0);
+}
+
+inline float3 interp_uniform_3(device const float* xa, device const float* y, float3 v) {
+    return float3(
+        interp_uniform_256(xa, y, 0u, v.x),
+        interp_uniform_256(xa, y, 1u, v.y),
+        interp_uniform_256(xa, y, 2u, v.z)
+    );
+}
+
+// ============================================================================
+// 3. Philox4x32-10 与三阶矩守恒无分支泊松银盐颗粒模型
+// ============================================================================
+inline uint4 philox4x32_10(uint4 ctr, uint2 key) {
+    for (int r = 0; r < 10; ++r) {
+        uint hi0 = mulhi(0xD2511F53u, ctr.x), lo0 = 0xD2511F53u * ctr.x;
+        uint hi1 = mulhi(0xCD9E8D57u, ctr.z), lo1 = 0xCD9E8D57u * ctr.z;
+        ctr = uint4(hi1 ^ ctr.y ^ key.x, lo1, hi0 ^ ctr.w ^ key.y, lo0);
+        key.x += 0x9E3779B9u; key.y += 0xBB67AE85u;
+    }
+    return ctr;
+}
+
+inline float u01(uint x) { return (float(x >> 8) + 0.5f) * (1.0f / 16777216.0f); }
+
+inline float3 draw_grain_3ch_fast(
+    uint pixelIdx,
+    uint seed,
+    float3 cmy,
+    device const float* grain_lp,
+    device const float* grain_dmin,
+    float areaScale
+) {
+    uint4 ctr = uint4(pixelIdx, seed, 0x9E3779B9u, 0xBB67AE85u);
+    uint2 key = uint2(seed ^ 0xA5A5A5A5u, 0x3C6EF372u);
+    uint4 rnd = philox4x32_10(ctr, key);
+
+    float u1 = max(u01(rnd.x), 1e-7f);
+    float u2 = u01(rnd.y) * 6.283185307f;
+    float u3 = max(u01(rnd.z), 1e-7f);
+    float u4 = u01(rnd.w) * 6.283185307f;
+
+    float r0 = sqrt(-2.0f * log(u1));
+    float r1 = sqrt(-2.0f * log(u3));
+    float3 z = float3(r0 * cos(u2), r0 * sin(u2), r1 * cos(u4));
+
+    float3 out;
+    for (uint ch = 0u; ch < 3u; ++ch) {
+        float dmin = grain_lp[4u * ch + 0u];
+        float dmax = grain_lp[4u * ch + 1u];
+        float n    = grain_lp[4u * ch + 2u] * areaScale;
+        float u    = grain_lp[4u * ch + 3u];
+        float d    = max(cmy[ch], 0.0f) + dmin;
+        float p    = clamp(d / dmax, 1e-6f, 1.0f - 1e-6f);
+        float sat  = 1.0f - p * u * (1.0f - 1e-6f);
+        float mu   = (n / sat) * p;
+        float od   = dmax / n;
+        float zk   = z[ch];
+        float k    = max(0.0f, floor(mu + sqrt(mu) * zk + (zk * zk - 1.0f) * (1.0f / 6.0f) + 0.5f));
+        out[ch]    = k * (od * sat) - grain_dmin[ch];
+    }
+    return out;
+}
+
+// ============================================================================
+// 4. CAM16-UCS 感知高光与色域压缩 (逐字移植自 gamut.metal)
+// ============================================================================
+inline float3 cam16ucs_compress_pixel(
+    float3 rgb,
+    device const float* m2x,
+    device const float* m2r,
+    device const float* cmax,
+    device const float* k,
+    uint nL,
+    uint nh,
+    uint lc_active
+) {
+    const float F_L = k[0], N_bb = k[1], N_cb = k[2], n_ = k[3], z = k[4], A_w = k[5], c_ = k[6], N_c = k[7];
+    const float L_grid0 = k[8], L_grid1 = k[9], h_grid0 = k[10], h_step = k[11];
+    const float threshold = k[12], limit = k[13], power_ = k[14];
+    const float lc_threshold = k[15], lc_limit = k[16], lc_power = k[17], L_white = k[18];
+    const float D0 = k[19], D1 = k[20], D2 = k[21];
+    const float e_c = pow(1.64f - pow(0.29f, n_), 0.73f);
+    const float inv_FL4 = pow(F_L, 0.25f);
+
+    float r = rgb.x, g = rgb.y, b_ = rgb.z;
+    float X = (m2x[0] * r + m2x[1] * g + m2x[2] * b_) * 100.0f;
+    float Y = (m2x[3] * r + m2x[4] * g + m2x[5] * b_) * 100.0f;
+    float Z = (m2x[6] * r + m2x[7] * g + m2x[8] * b_) * 100.0f;
+
+    float R = 0.401288f * X + 0.650173f * Y - 0.051461f * Z;
+    float G = -0.250268f * X + 1.204414f * Y + 0.045854f * Z;
+    float B = -0.002079f * X + 0.048952f * Y + 0.953127f * Z;
+
+    float Rc = D0 * R, Gc = D1 * G, Bc = D2 * B;
+    float sR = Rc >= 0.0f ? 1.0f : -1.0f, sG = Gc >= 0.0f ? 1.0f : -1.0f, sB = Bc >= 0.0f ? 1.0f : -1.0f;
+    float fR = pow(F_L * fabs(Rc) / 100.0f, 0.42f);
+    float fG = pow(F_L * fabs(Gc) / 100.0f, 0.42f);
+    float fB = pow(F_L * fabs(Bc) / 100.0f, 0.42f);
+    float Ra = 400.0f * sR * fR / (27.13f + fR) + 0.1f;
+    float Ga = 400.0f * sG * fG / (27.13f + fG) + 0.1f;
+    float Ba = 400.0f * sB * fB / (27.13f + fB) + 0.1f;
+
+    float a = Ra - 12.0f * Ga / 11.0f + Ba / 11.0f;
+    float bb = (Ra + Ga - 2.0f * Ba) / 9.0f;
+    float hrad = atan2(bb, a);
+    float e_t = 0.25f * (cos(hrad + 2.0f) + 3.8f);
+
+    float A = (2.0f * Ra + Ga + Ba / 20.0f - 0.305f) * N_bb;
+    float Aratio = A / A_w;
+    float sJ = Aratio >= 0.0f ? 1.0f : -1.0f;
+    float J = 100.0f * sJ * pow(fabs(Aratio), c_ * z);
+
+    float den = Ra + Ga + 21.0f * Ba / 20.0f;
+    float t = 0.0f;
+    if (den != 0.0f) t = (50000.0f / 13.0f * N_c * N_cb * e_t * sqrt(a * a + bb * bb)) / den;
+    float sq = sqrt(fabs(J) / 100.0f);
+    float C = (t > 0.0f) ? pow(t, 0.9f) * sq * e_c : 0.0f;
+    float M = C * inv_FL4;
+
+    float Mp = (1.0f / 0.0228f) * log(1.0f + 0.0228f * M);
+    float Jp = 1.7f * J / (1.0f + 0.007f * J);
+
+    if (lc_active != 0u) {
+        float Ln = Jp / L_white;
+        if (Ln > lc_threshold) {
+            float lsc = lc_limit - lc_threshold;
+            float lx = (Ln - lc_threshold) / lsc;
+            float ly = lx / pow(1.0f + pow(lx, lc_power), 1.0f / lc_power);
+            Ln = lc_threshold + lsc * ly;
+        }
+        Jp = Ln * L_white;
+    }
+
+    float Lc = min(max(Jp, L_grid0), L_grid1);
+    float Li = (Lc - L_grid0) / (L_grid1 - L_grid0) * (float)(nL - 1u);
+    int l0 = (int)floor(Li); l0 = min(max(l0, 0), (int)nL - 2);
+    float lf = Li - (float)l0;
+    float hi_ = (hrad - h_grid0) / h_step;
+    float hfl = floor(hi_);
+    int nhi = (int)nh;
+    int h0 = ((int)hfl % nhi + nhi) % nhi;
+    int h1 = (h0 + 1) % nhi;
+    float hf = hi_ - hfl;
+    float c00 = cmax[l0 * nhi + h0], c01 = cmax[l0 * nhi + h1];
+    float c10 = cmax[(l0 + 1) * nhi + h0], c11 = cmax[(l0 + 1) * nhi + h1];
+    float Cmax = (1.0f - lf) * ((1.0f - hf) * c00 + hf * c01) + lf * ((1.0f - hf) * c10 + hf * c11);
+    float safe = Cmax > 1e-9f ? Cmax : 1e-9f;
+
+    float d = Mp / safe;
+    if (d > threshold) {
+        float sc = limit - threshold;
+        float xk = (d - threshold) / sc;
+        float yk = xk / pow(1.0f + pow(xk, power_), 1.0f / power_);
+        d = threshold + sc * yk;
+    }
+    float Mp_new = d * safe;
+
+    float M_new = (exp(Mp_new * 0.0228f) - 1.0f) / 0.0228f;
+    float J_new = Jp / (1.7f - 0.007f * Jp);
+    float C_new = M_new / inv_FL4;
+
+    float sJ2 = J_new >= 0.0f ? 1.0f : -1.0f;
+    float A2 = A_w * sJ2 * pow(fabs(J_new) / 100.0f, 1.0f / (c_ * z));
+    float sq2 = sqrt(fabs(J_new) / 100.0f);
+    float t2 = (sq2 > 0.0f && C_new > 0.0f) ? pow(C_new / (sq2 * e_c), 1.0f / 0.9f) : 0.0f;
+    float ca = cos(hrad), sa = sin(hrad);
+    float p2 = A2 / N_bb + 0.305f;
+    const float p3 = 21.0f / 20.0f;
+    float a2, b2;
+    if (t2 == 0.0f) { a2 = 0.0f; b2 = 0.0f; }
+    else {
+        float p1 = ((50000.0f / 13.0f) * N_c * N_cb * e_t) / t2;
+        if (fabs(sa) >= fabs(ca)) {
+            float p4 = p1 / sa;
+            b2 = (p2 * (2.0f + p3) * (460.0f / 1403.0f)) /
+                 (p4 + (2.0f + p3) * (220.0f / 1403.0f) * (ca / sa) - (27.0f / 1403.0f) + p3 * (6300.0f / 1403.0f));
+            a2 = b2 * (ca / sa);
+        } else {
+            float p5 = p1 / ca;
+            a2 = (p2 * (2.0f + p3) * (460.0f / 1403.0f)) /
+                 (p5 + (2.0f + p3) * (220.0f / 1403.0f) - ((27.0f / 1403.0f) - p3 * (6300.0f / 1403.0f)) * (sa / ca));
+            b2 = a2 * (sa / ca);
+        }
+    }
+    float Ra2 = (460.0f * p2 + 451.0f * a2 + 288.0f * b2) / 1403.0f;
+    float Ga2 = (460.0f * p2 - 891.0f * a2 - 261.0f * b2) / 1403.0f;
+    float Ba2 = (460.0f * p2 - 220.0f * a2 - 6300.0f * b2) / 1403.0f;
+
+    float vm, sv, base_;
+    vm = Ra2 - 0.1f; sv = vm >= 0.0f ? 1.0f : -1.0f;
+    base_ = (fabs(vm) < 400.0f) ? (27.13f * fabs(vm)) / (400.0f - fabs(vm)) : 0.0f;
+    float Rf = (100.0f / F_L) * sv * pow(base_, 1.0f / 0.42f) / D0;
+    vm = Ga2 - 0.1f; sv = vm >= 0.0f ? 1.0f : -1.0f;
+    base_ = (fabs(vm) < 400.0f) ? (27.13f * fabs(vm)) / (400.0f - fabs(vm)) : 0.0f;
+    float Gf = (100.0f / F_L) * sv * pow(base_, 1.0f / 0.42f) / D1;
+    vm = Ba2 - 0.1f; sv = vm >= 0.0f ? 1.0f : -1.0f;
+    base_ = (fabs(vm) < 400.0f) ? (27.13f * fabs(vm)) / (400.0f - fabs(vm)) : 0.0f;
+    float Bf = (100.0f / F_L) * sv * pow(base_, 1.0f / 0.42f) / D2;
+
+    float Xn = (1.86206786f * Rf - 1.01125463f * Gf + 0.14918677f * Bf) / 100.0f;
+    float Yn = (0.38752654f * Rf + 0.62144744f * Gf - 0.00897398f * Bf) / 100.0f;
+    float Zn = (-0.01584150f * Rf - 0.03412294f * Gf + 1.04996444f * Bf) / 100.0f;
+
+    return float3(
+        m2r[0] * Xn + m2r[1] * Yn + m2r[2] * Zn,
+        m2r[3] * Xn + m2r[4] * Yn + m2r[5] * Zn,
+        m2r[6] * Xn + m2r[7] * Yn + m2r[8] * Zn
+    );
+}
+
+// ============================================================================
+// 5. 相机 10-bit/8-bit YCbCr 解码 + Apple Log 逆变换 + 硬件 2D 光谱纹理采样辅助函数
+// ============================================================================
+inline float3 decode_camera_rgb(
+    texture2d<float, access::sample> yOrBgraTex,
+    texture2d<float, access::sample> cbcrTex,
+    sampler texSampler,
+    float2 uv,
+    constant float* params
+) {
+    bool isBiPlanar = params[11] > 0.5f;
+    bool isFullRange = params[12] > 0.5f;
+    bool is10Bit = params[13] > 0.5f;
+    bool isBT2020 = params[14] > 0.5f;
+
+    if (isBiPlanar) {
+        float ySample = yOrBgraTex.sample(texSampler, uv).r;
+        float2 cbcrSample = cbcrTex.sample(texSampler, uv).rg;
+        float yVal;
+        float2 cbcr;
+        if (is10Bit) {
+            if (isFullRange) {
+                yVal = (65535.0f * ySample) / 65472.0f;
+                cbcr = (65535.0f * cbcrSample - float2(32768.0f)) / 65472.0f;
+            } else {
+                yVal = (65535.0f * ySample - 4096.0f) / 56064.0f;
+                cbcr = (65535.0f * cbcrSample - float2(32768.0f)) / 57344.0f;
+            }
+        } else {
+            if (isFullRange) {
+                yVal = ySample;
+                cbcr = cbcrSample - float2(0.5f, 0.5f);
+            } else {
+                yVal = (ySample - (16.0f / 255.0f)) * (255.0f / 219.0f);
+                cbcr = (cbcrSample - float2(128.0f / 255.0f)) * (255.0f / 224.0f);
+            }
+        }
+        if (isBT2020) {
+            return float3(
+                yVal + 1.4746f * cbcr.y,
+                yVal - 0.1645531268f * cbcr.x - 0.5713531268f * cbcr.y,
+                yVal + 1.8814f * cbcr.x
+            );
+        } else {
+            return float3(
+                yVal + 1.5748f * cbcr.y,
+                yVal - 0.187324f * cbcr.x - 0.468124f * cbcr.y,
+                yVal + 1.8556f * cbcr.x
+            );
+        }
+    } else {
+        return yOrBgraTex.sample(texSampler, uv).rgb;
+    }
+}
+
+inline float3 rgb_to_film_exposure(
+    float3 encodedRGB,
+    texture2d<float, access::sample> tcLutTex,
+    sampler texSampler,
+    constant float* params
+) {
+    bool isAppleLog = params[10] > 0.5f;
+    float3 linearRGB = isAppleLog
+        ? float3(apple_log_to_linear(encodedRGB.r), apple_log_to_linear(encodedRGB.g), apple_log_to_linear(encodedRGB.b))
+        : float3(cctf_decode_srgb(encodedRGB.r), cctf_decode_srgb(encodedRGB.g), cctf_decode_srgb(encodedRGB.b));
+
+    float r = max(linearRGB.r, 0.0f), g = max(linearRGB.g, 0.0f), bl = max(linearRGB.b, 0.0f);
+    float X = params[0] * r + params[1] * g + params[2] * bl;
+    float Y = params[3] * r + params[4] * g + params[5] * bl;
+    float Z = params[6] * r + params[7] * g + params[8] * bl;
+    float b = X + Y + Z;
+    float denom = b > 1e-10f ? b : 1e-10f;
+    float x = X / denom, y = Y / denom;
+    float omx = 1.0f - x;
+    float ty = clamp(y / (omx > 1e-10f ? omx : 1e-10f), 0.0f, 1.0f);
+    float tx = clamp(omx * omx, 0.0f, 1.0f);
+
+    const float lutScale = 191.0f / 192.0f;
+    const float lutBias  = 0.5f / 192.0f;
+    float3 lutVal = tcLutTex.sample(texSampler, float2(ty, tx) * lutScale + lutBias).rgb;
+    return clamp(lutVal * (isnan(b) ? 0.0f : b) * params[9], float3(0.0f), float3(65000.0f));
+}
+
+// ============================================================================
+// 6. 常量结构体与三套核心计算着色器
+// ============================================================================
+struct SpkPass2Uniforms {
+    uint is_positive;
+    uint scan_film;
+    uint dir_active;
+    uint cam16_nl;
+    uint cam16_nh;
+    uint cam16_lc_active;
+    uint reserved0;
+    float reserved1;
+    float reserved2;
+    float reserved3;
+
+    float halation_strength[3];
+    float dir_dmax[3];
+    float dir_matrix[9];
+    float grain_lp[12];
+    float grain_dmin[3];
+
+    float print_gain[3];
+    float print_offset[3];
+    float print_exposure_gain[3];
+
+    float xyz_to_rgb[9];
+    float output_matrix[9];
+    float cam16_m2x[9];
+    float cam16_m2r[9];
+    float cam16_k[22];
+
+    float film_curve_x[256 * 3];
+    float film_curve_inv[255 * 3];
+    float film_curve_y[256 * 3];
+    float coupler_curve_x[256 * 3];
+    float coupler_curve_inv[255 * 3];
+    float coupler_curve_y[256 * 3];
+
+    float print_chd[81 * 3];
+    float print_base[81];
+    float print_ixs[81 * 3];
+    float print_curve_x[256 * 3];
+    float print_curve_inv[255 * 3];
+    float print_curve_y[256 * 3];
+
+    float scan_chd[81 * 3];
+    float scan_base[81];
+    float scan_ixs[81 * 3];
+};
+
+struct SpkFrameUniforms {
+    uint frame_seed;
+    uint has_record_out;
+    float halation_amount;
+    float grain_amount;
+    float split_ratio;
+    float diffusion_ps;
+    float grain_area_scale;
+    float diff_core_weight;
+    float cmy_min[3];
+    float cmy_max[3];
+    float diff_w_med[3];
+    float diff_w_wide[3];
+    float bounce_w1;
+    float bounce_w23;
+};
+
+// 参数变动时在 GPU 上以 ~1.0ms 完成 64^3 负片密度网格的精确双 81 波段积分 + CAM16-UCS 烘焙
+kernel void spk_bake_print_lut_3d(
+    texture3d<half, access::write> printLutTex [[texture(0)]],
+    device const SpkPass2Uniforms& u           [[buffer(0)]],
+    device const float*            cam16Cmax   [[buffer(1)]],
+    constant float*                cmyBounds   [[buffer(2)]],
+    uint3                          gid         [[thread_position_in_grid]]
+) {
+    uint side = printLutTex.get_width();
+    if (gid.x >= side || gid.y >= side || gid.z >= side) return;
+
+    float3 norm = float3(gid) / float(side - 1u);
+    float3 cmyMin = float3(cmyBounds[0], cmyBounds[1], cmyBounds[2]);
+    float3 cmyMax = float3(cmyBounds[3], cmyBounds[4], cmyBounds[5]);
+    float3 cmy = cmyMin + norm * (cmyMax - cmyMin);
+
+    if (u.scan_film == 0u) {
+        float3 a = float3(0.0f);
+        for (uint l = 0u; l < 81u; ++l) {
+            uint l3 = 3u * l;
+            float d = u.print_base[l] + cmy.x * u.print_chd[l3] + cmy.y * u.print_chd[l3 + 1u] + cmy.z * u.print_chd[l3 + 2u];
+            float t = exp2(-d * 3.321928094887362f);
+            a.x += t * u.print_ixs[l3];
+            a.y += t * u.print_ixs[l3 + 1u];
+            a.z += t * u.print_ixs[l3 + 2u];
+        }
+        float3 pGain = float3(u.print_gain[0], u.print_gain[1], u.print_gain[2]);
+        float3 pOff = float3(u.print_offset[0], u.print_offset[1], u.print_offset[2]);
+        float3 pExpGain = float3(u.print_exposure_gain[0], u.print_exposure_gain[1], u.print_exposure_gain[2]);
+        float3 v = (max(a * pGain + pOff, float3(0.0f)) + 1e-10f) * pExpGain;
+        float3 printLogE = log10(max(v, float3(0.0f)) + 1e-10f);
+        cmy = interp_uniform_3(u.print_curve_x, u.print_curve_y, printLogE);
+    }
+
+    float3 xyz = float3(0.0f);
+    for (uint l = 0u; l < 81u; ++l) {
+        uint l3 = 3u * l;
+        float dp = u.scan_base[l] + cmy.x * u.scan_chd[l3] + cmy.y * u.scan_chd[l3 + 1u] + cmy.z * u.scan_chd[l3 + 2u];
+        float tp = exp2(-dp * 3.321928094887362f);
+        xyz.x += tp * u.scan_ixs[l3];
+        xyz.y += tp * u.scan_ixs[l3 + 1u];
+        xyz.z += tp * u.scan_ixs[l3 + 2u];
+    }
+    xyz = max(xyz, float3(0.0f)) + 1e-10f;
+
+    float3 rgbLin = float3(
+        xyz.x * u.xyz_to_rgb[0] + xyz.y * u.xyz_to_rgb[3] + xyz.z * u.xyz_to_rgb[6],
+        xyz.x * u.xyz_to_rgb[1] + xyz.y * u.xyz_to_rgb[4] + xyz.z * u.xyz_to_rgb[7],
+        xyz.x * u.xyz_to_rgb[2] + xyz.y * u.xyz_to_rgb[5] + xyz.z * u.xyz_to_rgb[8]
+    );
+
+    float3 rgbCompressed = cam16ucs_compress_pixel(
+        rgbLin,
+        u.cam16_m2x,
+        u.cam16_m2r,
+        cam16Cmax,
+        u.cam16_k,
+        u.cam16_nl,
+        u.cam16_nh,
+        u.cam16_lc_active
+    );
+
+    float3 vOut = float3(
+        rgbCompressed.x * u.output_matrix[0] + rgbCompressed.y * u.output_matrix[3] + rgbCompressed.z * u.output_matrix[6],
+        rgbCompressed.x * u.output_matrix[1] + rgbCompressed.y * u.output_matrix[4] + rgbCompressed.z * u.output_matrix[7],
+        rgbCompressed.x * u.output_matrix[2] + rgbCompressed.y * u.output_matrix[5] + rgbCompressed.z * u.output_matrix[8]
+    );
+
+    float3 finalFilmRGB = float3(
+        clamp(cctf_encode_srgb(vOut.r), 0.0f, 1.0f),
+        clamp(cctf_encode_srgb(vOut.g), 0.0f, 1.0f),
+        clamp(cctf_encode_srgb(vOut.b), 0.0f, 1.0f)
+    );
+
+    printLutTex.write(half4(half3(finalFilmRGB), 1.0h), gid);
+}
+
+// 阶段 1：540x960 2x2 盒式预滤波曝光通道，专供宽幅光晕与柔光镜高斯模糊使用
+kernel void spk_quarter_exposure_prepass(
+    texture2d<float, access::sample> yOrBgraTex       [[texture(0)]],
+    texture2d<float, access::sample> cbcrTex          [[texture(1)]],
+    texture2d<float, access::sample> tcLutTex         [[texture(2)]],
+    texture2d<half,  access::write>  quarterExpOutTex [[texture(3)]],
+    constant float*                  params           [[buffer(0)]],
+    uint2                            gid              [[thread_position_in_grid]]
+) {
+    uint qW = quarterExpOutTex.get_width();
+    uint qH = quarterExpOutTex.get_height();
+    if (gid.x >= qW || gid.y >= qH) return;
+
+    constexpr sampler texSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+    float2 invQ = 1.0f / float2(qW, qH);
+    float2 centerUV = (float2(gid) + 0.5f) * invQ;
+    float2 d = 0.25f * invQ;
+
+    // 4 点盒式超采样消除降采样斜边走样
+    float3 c0 = decode_camera_rgb(yOrBgraTex, cbcrTex, texSampler, centerUV + float2(-d.x, -d.y), params);
+    float3 c1 = decode_camera_rgb(yOrBgraTex, cbcrTex, texSampler, centerUV + float2( d.x, -d.y), params);
+    float3 c2 = decode_camera_rgb(yOrBgraTex, cbcrTex, texSampler, centerUV + float2(-d.x,  d.y), params);
+    float3 c3 = decode_camera_rgb(yOrBgraTex, cbcrTex, texSampler, centerUV + float2( d.x,  d.y), params);
+    float3 encodedRGB = 0.25f * (c0 + c1 + c2 + c3);
+
+    float3 raw = rgb_to_film_exposure(encodedRGB, tcLutTex, texSampler, params);
+    quarterExpOutTex.write(half4(half3(raw), 1.0h), gid);
+}
+
+// 阶段 2：100% 原生全分辨率寄存器融合核（主画面 raw 100% 保持原图锐度，仅叠加经大半径高斯平滑后的光学晕圈与光晕）
+kernel void spk_develop_and_print_spectral(
+    texture2d<float, access::sample> yOrBgraTex   [[texture(0)]],
+    texture2d<float, access::sample> cbcrTex      [[texture(1)]],
+    texture2d<float, access::sample> tcLutTex     [[texture(2)]],
+    texture2d<half,  access::sample> haloBlurTex  [[texture(3)]],
+    texture2d<half,  access::sample> bloomBlurTex [[texture(4)]],
+    texture3d<float, access::sample> printLutTex  [[texture(5)]],
+    texture2d<float, access::write>  previewTex   [[texture(6)]],
+    texture2d<float, access::write>  recordTex    [[texture(7)]],
+    constant float*                  pass1Params  [[buffer(0)]],
+    device const SpkPass2Uniforms&   u            [[buffer(1)]],
+    constant SpkFrameUniforms&       f            [[buffer(2)]],
+    uint2                            gid          [[thread_position_in_grid]]
+) {
+    uint outW = previewTex.get_width();
+    uint outH = previewTex.get_height();
+    if (gid.x >= outW || gid.y >= outH) return;
+
+    constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+    float2 uv = (float2(gid) + 0.5f) / float2(outW, outH);
+
+    // 100% 原生全分辨率采样相机 YCbCr 与光谱曝光 raw
+    float3 encodedRGB = decode_camera_rgb(yOrBgraTex, cbcrTex, linearSampler, uv, pass1Params);
+
+    if (f.split_ratio > 0.01f && f.has_record_out == 0u) {
+        uint splitX = uint(float(outW) * f.split_ratio);
+        if (gid.x < splitX) {
+            previewTex.write(float4(clamp(encodedRGB, 0.0f, 1.0f), 1.0f), gid);
+            return;
+        }
+        if (abs(int(gid.x) - int(splitX)) <= 1) {
+            previewTex.write(float4(0.95f, 0.76f, 0.22f, 1.0f), gid);
+            return;
+        }
+    }
+
+    float3 raw = rgb_to_film_exposure(encodedRGB, tcLutTex, linearSampler, pass1Params);
+
+    bool needSpatial = (f.diffusion_ps > 0.001f) || (f.halation_amount > 0.001f);
+    if (needSpatial) {
+        float3 medE  = float3(haloBlurTex.sample(linearSampler, uv).rgb);
+        float3 wideE = float3(bloomBlurTex.sample(linearSampler, uv).rgb);
+
+        // 1A. 镜头柔光滤镜：核心权重 (wC) 直接作用于 100% 全分辨率锐利 raw，仅中/宽晕圈取自高斯模糊纹理
+        if (f.diffusion_ps > 0.001f) {
+            float3 wMed  = float3(f.diff_w_med[0],  f.diff_w_med[1],  f.diff_w_med[2]);
+            float3 wWide = float3(f.diff_w_wide[0], f.diff_w_wide[1], f.diff_w_wide[2]);
+            float3 diffBlur = f.diff_core_weight * raw + wMed * medE + wWide * wideE;
+            raw = (1.0f - f.diffusion_ps) * raw + f.diffusion_ps * diffBlur;
+        }
+
+        // 1B. 胶片片基反射光晕：100% 全分辨率锐利 raw 与宽幅反射光晕能量守恒合成
+        if (f.halation_amount > 0.001f) {
+            float3 multiBounce = f.bounce_w1 * medE + f.bounce_w23 * wideE;
+            float3 a_tot = float3(u.halation_strength[0], u.halation_strength[1], u.halation_strength[2]) * f.halation_amount;
+            raw = (raw + a_tot * multiBounce) / (1.0f + a_tot);
+        }
+    }
+
+    float3 logRaw = log10(max(raw, float3(0.0f)) + 1e-10f);
+    float3 cmy = interp_uniform_3(u.film_curve_x, u.film_curve_y, logRaw);
+
+    if (u.dir_active != 0u) {
+        float3 dmax = float3(u.dir_dmax[0], u.dir_dmax[1], u.dir_dmax[2]);
+        float3 s = (u.is_positive != 0u) ? (dmax - cmy) : cmy;
+        float3 corr = float3(
+            s.x * u.dir_matrix[0] + s.y * u.dir_matrix[3] + s.z * u.dir_matrix[6],
+            s.x * u.dir_matrix[1] + s.y * u.dir_matrix[4] + s.z * u.dir_matrix[7],
+            s.x * u.dir_matrix[2] + s.y * u.dir_matrix[5] + s.z * u.dir_matrix[8]
+        );
+        float3 logRaw0 = logRaw - corr;
+        cmy = interp_uniform_3(u.coupler_curve_x, u.coupler_curve_y, logRaw0);
+    }
+
+    if (f.grain_amount > 0.001f) {
+        uint pixelIdx = gid.y * outW + gid.x;
+        float3 grained = draw_grain_3ch_fast(pixelIdx, f.frame_seed, cmy, u.grain_lp, u.grain_dmin, f.grain_area_scale);
+        cmy = mix(cmy, grained, f.grain_amount);
+    }
+
+    float3 cmyMin = float3(f.cmy_min[0], f.cmy_min[1], f.cmy_min[2]);
+    float3 cmyMax = float3(f.cmy_max[0], f.cmy_max[1], f.cmy_max[2]);
+    float3 uvw = clamp((cmy - cmyMin) / (cmyMax - cmyMin), 0.0f, 1.0f);
+    const float scale = 63.0f / 64.0f;
+    const float bias  = 0.5f / 64.0f;
+    float3 finalFilmRGB = printLutTex.sample(linearSampler, uvw * scale + bias).rgb;
+
+    if (f.has_record_out != 0u) {
+        recordTex.write(float4(finalFilmRGB, 1.0f), gid);
+    }
+
+    if (f.split_ratio > 0.01f) {
+        uint splitX = uint(float(outW) * f.split_ratio);
+        if (gid.x < splitX) {
+            previewTex.write(float4(clamp(encodedRGB, 0.0f, 1.0f), 1.0f), gid);
+            return;
+        }
+        if (abs(int(gid.x) - int(splitX)) <= 1) {
+            previewTex.write(float4(0.95f, 0.76f, 0.22f, 1.0f), gid);
+            return;
+        }
+    }
+
+    previewTex.write(float4(finalFilmRGB, 1.0f), gid);
+}
+
+struct FullscreenVertexOut {
+    float4 position [[position]];
+    float2 uv;
+};
+
+vertex FullscreenVertexOut spk_fullscreen_vertex(
+    uint vid [[vertex_id]],
+    constant float2* scaleXY [[buffer(0)]]
+) {
+    const float2 positions[4] = {
+        float2(-1.0f, -1.0f),
+        float2( 1.0f, -1.0f),
+        float2(-1.0f,  1.0f),
+        float2( 1.0f,  1.0f)
+    };
+    const float2 uvs[4] = {
+        float2(0.0f, 1.0f),
+        float2(1.0f, 1.0f),
+        float2(0.0f, 0.0f),
+        float2(1.0f, 0.0f)
+    };
+    FullscreenVertexOut out;
+    out.position = float4(positions[vid] * scaleXY[0], 0.0f, 1.0f);
+    out.uv = uvs[vid];
+    return out;
+}
+
+fragment float4 spk_fullscreen_fragment(
+    FullscreenVertexOut in [[stage_in]],
+    texture2d<float, access::sample> tex [[texture(0)]]
+) {
+    constexpr sampler s(coord::normalized, address::clamp_to_edge, filter::linear);
+    return tex.sample(s, in.uv);
+}
+
+
+// 独立的线性 Display P3 照片冲洗管线。
+struct EngineUniforms {
+    int sourceMode;
+    int outputGamut;
+    int preserveExtendedHDR;
+    int reserved;
+};
+
+inline float3 linear_photo_rgb_to_film_exposure(
+    float3 encodedRGB,
+    texture2d<float, access::sample> tcLutTex,
+    sampler texSampler,
+    constant float* params
+) {
+    float3 linearRGB = encodedRGB;
+
+    float r = max(linearRGB.r, 0.0f), g = max(linearRGB.g, 0.0f), bl = max(linearRGB.b, 0.0f);
+    float X = params[0] * r + params[1] * g + params[2] * bl;
+    float Y = params[3] * r + params[4] * g + params[5] * bl;
+    float Z = params[6] * r + params[7] * g + params[8] * bl;
+    float b = X + Y + Z;
+    float denom = b > 1e-10f ? b : 1e-10f;
+    float x = X / denom, y = Y / denom;
+    float omx = 1.0f - x;
+    float ty = clamp(y / (omx > 1e-10f ? omx : 1e-10f), 0.0f, 1.0f);
+    float tx = clamp(omx * omx, 0.0f, 1.0f);
+
+    const float lutScale = 191.0f / 192.0f;
+    const float lutBias  = 0.5f / 192.0f;
+    float3 lutVal = tcLutTex.sample(texSampler, float2(ty, tx) * lutScale + lutBias).rgb;
+    return clamp(lutVal * (isnan(b) ? 0.0f : b) * params[9], float3(0.0f), float3(65000.0f));
+}
+
+kernel void spk_still_quarter_exposure_prepass(
+    texture2d<float, access::sample> yOrBgraTex       [[texture(0)]],
+    texture2d<float, access::sample> cbcrTex          [[texture(1)]],
+    texture2d<float, access::sample> tcLutTex         [[texture(2)]],
+    texture2d<half,  access::write>  quarterExpOutTex [[texture(3)]],
+    constant float*                  params           [[buffer(0)]],
+    uint2                            gid              [[thread_position_in_grid]]
+) {
+    uint qW = quarterExpOutTex.get_width();
+    uint qH = quarterExpOutTex.get_height();
+    if (gid.x >= qW || gid.y >= qH) return;
+
+    constexpr sampler texSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+    float2 invQ = 1.0f / float2(qW, qH);
+    float2 centerUV = (float2(gid) + 0.5f) * invQ;
+    float2 d = 0.25f * invQ;
+
+    // 4 点盒式超采样消除降采样斜边走样
+    float3 c0 = decode_camera_rgb(yOrBgraTex, cbcrTex, texSampler, centerUV + float2(-d.x, -d.y), params);
+    float3 c1 = decode_camera_rgb(yOrBgraTex, cbcrTex, texSampler, centerUV + float2( d.x, -d.y), params);
+    float3 c2 = decode_camera_rgb(yOrBgraTex, cbcrTex, texSampler, centerUV + float2(-d.x,  d.y), params);
+    float3 c3 = decode_camera_rgb(yOrBgraTex, cbcrTex, texSampler, centerUV + float2( d.x,  d.y), params);
+    float3 encodedRGB = 0.25f * (c0 + c1 + c2 + c3);
+
+    float3 raw = linear_photo_rgb_to_film_exposure(encodedRGB, tcLutTex, texSampler, params);
+    quarterExpOutTex.write(half4(half3(raw), 1.0h), gid);
+}
+
+kernel void spk_still_develop_and_print_spectral(
+    texture2d<float, access::sample> yOrBgraTex   [[texture(0)]],
+    texture2d<float, access::sample> cbcrTex      [[texture(1)]],
+    texture2d<float, access::sample> tcLutTex     [[texture(2)]],
+    texture2d<half,  access::sample> haloBlurTex  [[texture(3)]],
+    texture2d<half,  access::sample> bloomBlurTex [[texture(4)]],
+    texture3d<float, access::sample> printLutTex  [[texture(5)]],
+    texture2d<float, access::write>  previewTex   [[texture(6)]],
+    texture2d<float, access::write>  recordTex    [[texture(7)]],
+    constant float*                  pass1Params  [[buffer(0)]],
+    device const SpkPass2Uniforms&   u            [[buffer(1)]],
+    constant SpkFrameUniforms&       f            [[buffer(2)]],
+    constant EngineUniforms&        engine       [[buffer(3)]],
+    uint2                            gid          [[thread_position_in_grid]]
+) {
+    uint outW = previewTex.get_width();
+    uint outH = previewTex.get_height();
+    if (gid.x >= outW || gid.y >= outH) return;
+
+    constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+    float2 uv = (float2(gid) + 0.5f) / float2(outW, outH);
+
+    // 100% 原生全分辨率采样相机 YCbCr 与光谱曝光 raw
+    float3 encodedRGB = decode_camera_rgb(yOrBgraTex, cbcrTex, linearSampler, uv, pass1Params);
+
+    if (f.split_ratio > 0.01f && f.has_record_out == 0u) {
+        uint splitX = uint(float(outW) * f.split_ratio);
+        if (gid.x < splitX) {
+            previewTex.write(float4(clamp(encodedRGB, 0.0f, 1.0f), 1.0f), gid);
+            return;
+        }
+        if (abs(int(gid.x) - int(splitX)) <= 1) {
+            previewTex.write(float4(0.95f, 0.76f, 0.22f, 1.0f), gid);
+            return;
+        }
+    }
+
+    float3 raw = linear_photo_rgb_to_film_exposure(encodedRGB, tcLutTex, linearSampler, pass1Params);
+
+    bool needSpatial = (f.diffusion_ps > 0.001f) || (f.halation_amount > 0.001f);
+    if (needSpatial) {
+        float3 medE  = float3(haloBlurTex.sample(linearSampler, uv).rgb);
+        float3 wideE = float3(bloomBlurTex.sample(linearSampler, uv).rgb);
+
+        // 1A. 镜头柔光滤镜：核心权重 (wC) 直接作用于 100% 全分辨率锐利 raw，仅中/宽晕圈取自高斯模糊纹理
+        if (f.diffusion_ps > 0.001f) {
+            float3 wMed  = float3(f.diff_w_med[0],  f.diff_w_med[1],  f.diff_w_med[2]);
+            float3 wWide = float3(f.diff_w_wide[0], f.diff_w_wide[1], f.diff_w_wide[2]);
+            float3 diffBlur = f.diff_core_weight * raw + wMed * medE + wWide * wideE;
+            raw = (1.0f - f.diffusion_ps) * raw + f.diffusion_ps * diffBlur;
+        }
+
+        // 1B. 胶片片基反射光晕：100% 全分辨率锐利 raw 与宽幅反射光晕能量守恒合成
+        if (f.halation_amount > 0.001f) {
+            float3 multiBounce = f.bounce_w1 * medE + f.bounce_w23 * wideE;
+            float3 a_tot = float3(u.halation_strength[0], u.halation_strength[1], u.halation_strength[2]) * f.halation_amount;
+            raw = (raw + a_tot * multiBounce) / (1.0f + a_tot);
+        }
+    }
+
+    float3 logRaw = log10(max(raw, float3(0.0f)) + 1e-10f);
+    float3 cmy = interp_uniform_3(u.film_curve_x, u.film_curve_y, logRaw);
+
+    if (u.dir_active != 0u) {
+        float3 dmax = float3(u.dir_dmax[0], u.dir_dmax[1], u.dir_dmax[2]);
+        float3 s = (u.is_positive != 0u) ? (dmax - cmy) : cmy;
+        float3 corr = float3(
+            s.x * u.dir_matrix[0] + s.y * u.dir_matrix[3] + s.z * u.dir_matrix[6],
+            s.x * u.dir_matrix[1] + s.y * u.dir_matrix[4] + s.z * u.dir_matrix[7],
+            s.x * u.dir_matrix[2] + s.y * u.dir_matrix[5] + s.z * u.dir_matrix[8]
+        );
+        float3 logRaw0 = logRaw - corr;
+        cmy = interp_uniform_3(u.coupler_curve_x, u.coupler_curve_y, logRaw0);
+    }
+
+    if (f.grain_amount > 0.001f) {
+        uint pixelIdx = gid.y * outW + gid.x;
+        float3 grained = draw_grain_3ch_fast(pixelIdx, f.frame_seed, cmy, u.grain_lp, u.grain_dmin, f.grain_area_scale);
+        cmy = mix(cmy, grained, f.grain_amount);
+    }
+
+    float3 cmyMin = float3(f.cmy_min[0], f.cmy_min[1], f.cmy_min[2]);
+    float3 cmyMax = float3(f.cmy_max[0], f.cmy_max[1], f.cmy_max[2]);
+    float3 uvw = clamp((cmy - cmyMin) / (cmyMax - cmyMin), 0.0f, 1.0f);
+    const float scale = 63.0f / 64.0f;
+    const float bias  = 0.5f / 64.0f;
+    float3 finalFilmRGB = printLutTex.sample(linearSampler, uvw * scale + bias).rgb;
+
+    if (engine.sourceMode == 2) {
+        float3 linearP3 = float3(cctf_decode_srgb(finalFilmRGB.r), cctf_decode_srgb(finalFilmRGB.g), cctf_decode_srgb(finalFilmRGB.b));
+        if (engine.preserveExtendedHDR != 0) {
+            float scenePeak = max(max(encodedRGB.r, encodedRGB.g), encodedRGB.b) * pass1Params[9];
+            float ext = 0.6f * (1.0f - exp(-max(scenePeak - 1.0f, 0.0f)));
+            linearP3 += ext * smoothstep(0.35f, 0.85f, max(max(linearP3.r, linearP3.g), linearP3.b));
+        }
+        if (engine.outputGamut == 0) {
+            linearP3 = float3(
+                1.224940f * linearP3.r - 0.224940f * linearP3.g,
+               -0.042057f * linearP3.r + 1.042057f * linearP3.g,
+               -0.019638f * linearP3.r - 0.078636f * linearP3.g + 1.098274f * linearP3.b
+            );
+        }
+        finalFilmRGB = clamp(linearP3, 0.0f, engine.preserveExtendedHDR != 0 ? 1.6f : 1.0f);
+    }
+
+    if (f.has_record_out != 0u) {
+        recordTex.write(float4(finalFilmRGB, 1.0f), gid);
+    }
+
+    if (f.split_ratio > 0.01f) {
+        uint splitX = uint(float(outW) * f.split_ratio);
+        if (gid.x < splitX) {
+            previewTex.write(float4(clamp(encodedRGB, 0.0f, 1.0f), 1.0f), gid);
+            return;
+        }
+        if (abs(int(gid.x) - int(splitX)) <= 1) {
+            previewTex.write(float4(0.95f, 0.76f, 0.22f, 1.0f), gid);
+            return;
+        }
+    }
+
+    previewTex.write(float4(finalFilmRGB, 1.0f), gid);
+}
