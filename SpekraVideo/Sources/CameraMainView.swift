@@ -1044,6 +1044,7 @@ struct CameraMainView: View {
                 .position(x: geo.size.width * 0.5, y: geo.size.height * 0.5)
                 .animation(.easeInOut(duration: 0.2), value: controller.captureAngle)
 
+                #if APP_STORE
                 if controller.showProPaywall {
                     ProPaywallModalView(
                         purchaseManager: purchaseManager,
@@ -1051,6 +1052,7 @@ struct CameraMainView: View {
                         onClose: { controller.showProPaywall = false }
                     )
                 }
+                #endif
             }
             .ignoresSafeArea()
         }

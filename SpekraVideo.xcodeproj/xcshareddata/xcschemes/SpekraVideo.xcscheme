@@ -43,4 +43,19 @@
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
+   <ProfileAction buildConfiguration = "OpenSource">
+      <BuildableProductRunnable runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "262920596D4FD852E82D523A"
+            BuildableName = "SpekraVideo.app"
+            BlueprintName = "SpekraVideo"
+            ReferencedContainer = "container:SpekraVideo.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction buildConfiguration = "OpenSource" revealArchiveInOrganizer = "YES">
+   </ArchiveAction>
 </Scheme>

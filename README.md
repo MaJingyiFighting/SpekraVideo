@@ -39,6 +39,8 @@ A real-time spectral film and darkroom print camera for iPhone. Point the lens, 
 
 Requires Xcode 16 or later and an iPhone running iOS 18.0 or later (iPhone 15 Pro / 16 Pro or later required for hardware 10-bit Apple Log recording).
 
+Self-compiled open-source builds include all features from the first launch: social platform export presets, saving processed photos with DNG originals, and saving processed videos with Apple Log originals.
+
 1. Clone this repository:
 
 ```bash
@@ -46,17 +48,20 @@ git clone <repository-url>
 cd SpekraVideo
 ```
 
-2. Open `SpekraVideo.xcodeproj` in Xcode, select the **SpekraVideo** target, go to **Signing & Capabilities**, choose your own **Team**, and set a unique **Bundle Identifier** to sign and install onto your device.
+2. Open `SpekraVideo.xcodeproj` in Xcode, select the **SpekraVideo** scheme and target, go to **Signing & Capabilities**, choose your own **Team**, and set a unique **Bundle Identifier** to sign and install onto your device.
 
 3. Or build for the iOS Simulator from the command line:
 
 ```bash
 xcodebuild -project SpekraVideo.xcodeproj \
            -scheme SpekraVideo \
+           -configuration OpenSource \
            -sdk iphonesimulator \
            -derivedDataPath build/DerivedData \
            CODE_SIGNING_ALLOWED=NO build
 ```
+
+**Build editions:** The **SpekraVideo** scheme runs with Debug and archives with OpenSource; both include all features. For App Store distribution, use the **SpekraVideo-AppStore** scheme with the Release configuration, which unlocks Pro through App Store purchases.
 
 ## Layout
 

@@ -39,6 +39,8 @@ iPhone 上的实时光谱胶片与暗房相纸摄影机。选定胶卷与放大�
 
 需要 Xcode 16 或更高版本，以及运行 iOS 18.0 或更高版本的 iPhone（开启硬件 10-bit Apple Log 录制需 iPhone 15 Pro / 16 Pro 或更新机型）。
 
+自行编译的开源版本安装后即可使用全部功能，包括社交平台导出预设、照片成片与 DNG 原片同时保存，以及视频成片与 Apple Log 原片同时保存。
+
 1. 克隆本仓库：
 
 ```bash
@@ -46,17 +48,20 @@ git clone <repository-url>
 cd SpekraVideo
 ```
 
-2. 使用 Xcode 打开 `SpekraVideo.xcodeproj`，选中 **SpekraVideo** 目标，在 **Signing & Capabilities** 中选择你自己的 Apple ID 签名团队（**Team**），并修改为你自己的 **Bundle Identifier**，即可连接真机签名安装。
+2. 使用 Xcode 打开 `SpekraVideo.xcodeproj`（工程文件），选择 **SpekraVideo** 构建方案；选中同名目标，在 **Signing & Capabilities**（签名与功能）中选择你自己的 Apple ID 签名团队（**Team**），并修改为你自己的 **Bundle Identifier**（应用标识），即可连接真机签名安装。
 
 3. 或通过命令行构建模拟器版本：
 
 ```bash
 xcodebuild -project SpekraVideo.xcodeproj \
            -scheme SpekraVideo \
+           -configuration OpenSource \
            -sdk iphonesimulator \
            -derivedDataPath build/DerivedData \
            CODE_SIGNING_ALLOWED=NO build
 ```
+
+**构建版本：** **SpekraVideo** 方案运行时使用 Debug（调试）设置，归档时使用 OpenSource（开源发布）设置，两者均直接开放全部功能。商店发布使用 **SpekraVideo-AppStore**（商店发布）方案及 Release（商店发布）设置，通过 App Store 购买解锁 Pro。
 
 ## 目录结构
 

@@ -1,6 +1,8 @@
 import Foundation
-import StoreKit
 import SwiftUI
+
+#if APP_STORE
+import StoreKit
 
 @MainActor
 final class ProPurchaseManager: ObservableObject {
@@ -259,3 +261,12 @@ struct ProPaywallModalView: View {
         }
     }
 }
+#else
+@MainActor
+final class ProPurchaseManager: ObservableObject {
+    static let shared = ProPurchaseManager()
+    let isProUnlocked = true
+
+    private init() {}
+}
+#endif
