@@ -72,6 +72,13 @@ xcodebuild -project SpekraVideo.xcodeproj \
 | `SpekraVideo/Resources/engine/` | 预烘焙光谱常数（`spektrafilm_constants.bin`）、25 款胶卷与 9 款相纸实测配置、放大机中性滤色值与 Hanatos 光谱升采样表（`arctic2026beta04.bin`） |
 | `engine/` | 移植自 `SpektraLab` / `spektrafilm` 的 C++20 光谱核心计算模块（光谱升采样、特征曲线、DIR 成色剂耦合、RA-4 印相与 CAM16-UCS 色域映射） |
 
+## 如果你也拍真实胶卷：NegativeStudio
+
+SpekraVideo 致力于让 iPhone 用 81 波段物理光谱管线拍出胶片感；而如果你同时在拍**实体胶卷（135 / 120）**，欢迎体验我们独立开发的负片暗房工具 **[NegativeStudio](https://negative.theonly.ltd/?utm_source=github&utm_medium=spekravideo_readme)**（[App Store](https://apps.apple.com/app/id6836234348) · 支持 iOS / Web / 桌面端，无需订阅 Lightroom）：
+
+- **端侧免费工具箱**：机械胶片机测光表、Pro 机型 LiDAR 厘米级测距景深尺、胶卷拍摄记录本（底片翻拍后自动回写 EXIF），以及灯箱实时反转正片翻拍台（48MP DNG 无损采集）。
+- **物理暗房精洗**：精准去除橙色色罩、整卷统一色调、RA-4 相纸四旋钮印相，以及实拍底片跨胶卷色彩互转（Re-film）。新账号注册即赠 6 张免费冲印额度，可先用自己的底片体验。
+
 ## 致谢与开源许可
 
 胶片物理过程模型、彩色胶片与相纸实测光谱配置以及 RA-4 印相模拟来自 **Andrea Volpato** 的 [**spektrafilm**](https://github.com/andreavolpato/spektrafilm)。

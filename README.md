@@ -72,6 +72,13 @@ xcodebuild -project SpekraVideo.xcodeproj \
 | `SpekraVideo/Resources/engine/` | Baked spectral constants (`spektrafilm_constants.bin`), 25 film & 9 paper JSON profiles, neutral enlarger filter packs, and Hanatos spectral upsampling LUT (`arctic2026beta04.bin`) |
 | `engine/` | C++20 spectral core ported from `SpektraLab` / `spektrafilm` (spectral upsampling, characteristic curves, DIR couplers, RA-4 printing, and CAM16-UCS gamut mapping) |
 
+## Companion App for Real Film: NegativeStudio
+
+SpekraVideo brings an 81-wavelength physical film pipeline to digital iPhone capture. If you also shoot **real 35 mm / 120 film**, check out **[NegativeStudio](https://negative.theonly.ltd/?utm_source=github&utm_medium=spekravideo_readme)** ([App Store](https://apps.apple.com/app/id6836234348)) — our standalone negative-to-positive darkroom for iOS, Web, and Desktop with no Lightroom dependency:
+
+- **Free on-device analog toolkit:** Pocket light meter, LiDAR distance & depth-of-field scale for mechanical cameras, roll logging (auto-written back to EXIF after scanning), and a real-time inverted lightbox scanner preview with 48 MP DNG capture.
+- **Physical darkroom inversion:** Accurate orange-mask removal, roll-wide color consistency, four-knob RA-4 paper printing, and cross-stock film re-emulation (Re-film). New accounts include 6 free inversions to try on your own negatives.
+
 ## Credits and Licence
 
 The spectral film process model, the measured color film and paper profiles, and the RA-4 print simulation are from [**spektrafilm**](https://github.com/andreavolpato/spektrafilm) by **Andrea Volpato**.
