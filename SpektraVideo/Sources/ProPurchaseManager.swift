@@ -7,8 +7,8 @@ import StoreKit
 @MainActor
 final class ProPurchaseManager: ObservableObject {
     static let shared = ProPurchaseManager()
-    static let productID = "app.spekravideo.cam.pro_creator"
-    private static let cacheKey = "spekravideo.pro_creator.unlocked"
+    static let productID = "app.spektravideo.cam.pro_creator"
+    private static let cacheKey = "spektravideo.pro_creator.unlocked"
 
     @Published var isProUnlocked: Bool = false
     @Published var product: Product? = nil
@@ -143,7 +143,7 @@ struct ProPaywallModalView: View {
             // 顶部：右上角轻量关闭按钮 + 居中标题
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 8) {
-                    Text("SpekraVideo Pro")
+                    Text("SpektraVideo Pro")
                         .font(.system(size: 22, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
 

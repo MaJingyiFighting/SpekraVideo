@@ -1,11 +1,11 @@
-# SpekraVideo
+# SpektraVideo
 
 [English](README.md) · **简体中文**
 
 iPhone 上的实时光谱胶片与暗房相纸摄影机。选定胶卷与放大相纸，以 81 个波长的物理感光与化学显影管线，实时拍摄 10-bit Apple Log 视频与 4800 万像素 RAW 照片。
 
 <p align="center">
-  <img src="screenshots/Screenshot_ZH_HANS.png" width="280" alt="SpekraVideo 主取景器界面" />
+  <img src="screenshots/Screenshot_ZH_HANS.png" width="280" alt="SpektraVideo 主取景器界面" />
   <img src="screenshots/apple_log_split_compare.png" width="280" alt="10-bit Apple Log 实时分屏对比" />
   <img src="screenshots/darkroom_films_papers.png" width="280" alt="25 款胶卷与 9 款暗房相纸" />
 </p>
@@ -45,36 +45,36 @@ iPhone 上的实时光谱胶片与暗房相纸摄影机。选定胶卷与放大�
 
 ```bash
 git clone <repository-url>
-cd SpekraVideo
+cd SpektraVideo
 ```
 
-2. 使用 Xcode 打开 `SpekraVideo.xcodeproj`（工程文件），选择 **SpekraVideo** 构建方案；选中同名目标，在 **Signing & Capabilities**（签名与功能）中选择你自己的 Apple ID 签名团队（**Team**），并修改为你自己的 **Bundle Identifier**（应用标识），即可连接真机签名安装。
+2. 使用 Xcode 打开 `SpektraVideo.xcodeproj`（工程文件），选择 **SpektraVideo** 构建方案；选中同名目标，在 **Signing & Capabilities**（签名与功能）中选择你自己的 Apple ID 签名团队（**Team**），并修改为你自己的 **Bundle Identifier**（应用标识），即可连接真机签名安装。
 
 3. 或通过命令行构建模拟器版本：
 
 ```bash
-xcodebuild -project SpekraVideo.xcodeproj \
-           -scheme SpekraVideo \
+xcodebuild -project SpektraVideo.xcodeproj \
+           -scheme SpektraVideo \
            -configuration OpenSource \
            -sdk iphonesimulator \
            -derivedDataPath build/DerivedData \
            CODE_SIGNING_ALLOWED=NO build
 ```
 
-**构建版本：** **SpekraVideo** 方案运行时使用 Debug（调试）设置，归档时使用 OpenSource（开源发布）设置，两者均直接开放全部功能。商店发布使用 **SpekraVideo-AppStore**（商店发布）方案及 Release（商店发布）设置，通过 App Store 购买解锁 Pro。
+**构建版本：** **SpektraVideo** 方案运行时使用 Debug（调试）设置，归档时使用 OpenSource（开源发布）设置，两者均直接开放全部功能。商店发布使用 **SpektraVideo-AppStore**（商店发布）方案及 Release（商店发布）设置，通过 App Store 购买解锁 Pro。
 
 ## 目录结构
 
 | 路径 | 说明 |
 |---|---|
-| `SpekraVideo/Sources/` | SwiftUI 相机界面、`AVCaptureSession` 10-bit Apple Log 与 48MP ProRAW 采集管线、Metal 实时渲染引擎与 C++ 桥接层 |
-| `SpekraVideo/Resources/SpectralFilmShaders.msl` | Metal 计算着色器（Apple Log / PQ / HLG / sRGB 解码、1/4 分辨率曝光预通道、3D 印相查找表烘焙、光晕散射、颗粒合成与三级级联光学柔光镜） |
-| `SpekraVideo/Resources/engine/` | 预烘焙光谱常数（`spektrafilm_constants.bin`）、25 款胶卷与 9 款相纸实测配置、放大机中性滤色值与 Hanatos 光谱升采样表（`arctic2026beta04.bin`） |
+| `SpektraVideo/Sources/` | SwiftUI 相机界面、`AVCaptureSession` 10-bit Apple Log 与 48MP ProRAW 采集管线、Metal 实时渲染引擎与 C++ 桥接层 |
+| `SpektraVideo/Resources/SpectralFilmShaders.msl` | Metal 计算着色器（Apple Log / PQ / HLG / sRGB 解码、1/4 分辨率曝光预通道、3D 印相查找表烘焙、光晕散射、颗粒合成与三级级联光学柔光镜） |
+| `SpektraVideo/Resources/engine/` | 预烘焙光谱常数（`spektrafilm_constants.bin`）、25 款胶卷与 9 款相纸实测配置、放大机中性滤色值与 Hanatos 光谱升采样表（`arctic2026beta04.bin`） |
 | `engine/` | 移植自 `SpektraLab` / `spektrafilm` 的 C++20 光谱核心计算模块（光谱升采样、特征曲线、DIR 成色剂耦合、RA-4 印相与 CAM16-UCS 色域映射） |
 
 ## 如果你也拍真实胶卷：NegativeStudio
 
-SpekraVideo 致力于让 iPhone 用 81 波段物理光谱管线拍出胶片感；而如果你同时在拍**实体胶卷（135 / 120）**，欢迎体验我们独立开发的负片暗房工具 **[NegativeStudio](https://negative.theonly.ltd/?utm_source=github&utm_medium=spekravideo_readme)**（[App Store](https://apps.apple.com/app/id6836234348) · 支持 iOS / Web / 桌面端，无需订阅 Lightroom）：
+SpektraVideo 致力于让 iPhone 用 81 波段物理光谱管线拍出胶片感；而如果你同时在拍**实体胶卷（135 / 120）**，欢迎体验我们独立开发的负片暗房工具 **[NegativeStudio](https://negative.theonly.ltd/?utm_source=github&utm_medium=spektravideo_readme)**（[App Store](https://apps.apple.com/app/id6836234348) · 支持 iOS / Web / 桌面端，无需订阅 Lightroom）：
 
 - **端侧免费工具箱**：机械胶片机测光表、Pro 机型 LiDAR 厘米级测距景深尺、胶卷拍摄记录本（底片翻拍后自动回写 EXIF），以及灯箱实时反转正片翻拍台（48MP DNG 无损采集）。
 - **物理暗房精洗**：精准去除橙色色罩、整卷统一色调、RA-4 相纸四旋钮印相，以及实拍底片跨胶卷色彩互转（Re-film）。新账号注册即赠 6 张免费冲印额度，可先用自己的底片体验。
@@ -94,6 +94,6 @@ C++20 光谱核心移植代码（`engine/src/core/`）及 4 款黑白胶片/相�
 
 ## 商标与品牌标识声明
 
-依据 GNU 通用公共许可证第 3 版（GPL-3.0）第 7 条附加条款，**SpekraVideo™** 名称、品牌标识及应用图标（`logos/SpekraVideo_AppIcon_1024.png` 与 `Assets.xcassets/AppIcon.appiconset`）**不在**开源许可授权范围内，保留全部权利。
+依据 GNU 通用公共许可证第 3 版（GPL-3.0）第 7 条附加条款，**SpektraVideo™** 名称、品牌标识及应用图标（`logos/SpektraVideo_AppIcon_1024.png` 与 `Assets.xcassets/AppIcon.appiconset`）**不在**开源许可授权范围内，保留全部权利。
 
-欢迎基于本项目进行个人学习、研究与修改。但如果你向他人分发或发布任何构建版本（无论免费或商业用途），均须移除 **SpekraVideo** 名称与应用图标，换用你自己的独立名称与图标，并在显著位置标明该版本并非官方版本、亦未获得 SpekraVideo 官方认可。
+欢迎基于本项目进行个人学习、研究与修改。但如果你向他人分发或发布任何构建版本（无论免费或商业用途），均须移除 **SpektraVideo** 名称与应用图标，换用你自己的独立名称与图标，并在显著位置标明该版本并非官方版本、亦未获得 SpektraVideo 官方认可。

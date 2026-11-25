@@ -205,7 +205,7 @@ private final class PhotoCaptureProcessor: NSObject, AVCapturePhotoCaptureDelega
         } else if let result {
             completion(result)
         } else {
-            completion(.failure(NSError(domain: "SpekraVideo.Photo", code: 1, userInfo: [NSLocalizedDescriptionKey: "照片读取失败"])))
+            completion(.failure(NSError(domain: "SpektraVideo.Photo", code: 1, userInfo: [NSLocalizedDescriptionKey: "照片读取失败"])))
         }
     }
 }
@@ -396,10 +396,10 @@ final class LogCameraController: NSObject, ObservableObject {
     private var paramsSnapshot = SpectralFilmParameters()
 
     private let session = AVCaptureSession()
-    private let sessionQueue = DispatchQueue(label: "app.spekravideo.cam.session", qos: .userInteractive)
-    private let videoOutputQueue = DispatchQueue(label: "app.spekravideo.cam.video", qos: .userInteractive)
-    private let audioOutputQueue = DispatchQueue(label: "app.spekravideo.cam.audio", qos: .userInteractive)
-    private let photoQueue = DispatchQueue(label: "app.spekravideo.cam.photo", qos: .userInitiated)
+    private let sessionQueue = DispatchQueue(label: "app.spektravideo.cam.session", qos: .userInteractive)
+    private let videoOutputQueue = DispatchQueue(label: "app.spektravideo.cam.video", qos: .userInteractive)
+    private let audioOutputQueue = DispatchQueue(label: "app.spektravideo.cam.audio", qos: .userInteractive)
+    private let photoQueue = DispatchQueue(label: "app.spektravideo.cam.photo", qos: .userInitiated)
     private lazy var photoCIContext = CIContext(options: [
         .cacheIntermediates: false,
         .workingColorSpace: CGColorSpace(name: CGColorSpace.extendedLinearDisplayP3)!
@@ -1612,13 +1612,13 @@ final class LogCameraController: NSObject, ObservableObject {
             PHPhotoLibrary.shared().performChanges({
                 let opts = PHAssetResourceCreationOptions()
                 opts.uniformTypeIdentifier = fileFormat.fileType.identifier
-                opts.originalFilename = "SpekraVideo_\(UUID().uuidString).\(fileFormat.fileType.preferredFilenameExtension ?? "heic")"
+                opts.originalFilename = "SpektraVideo_\(UUID().uuidString).\(fileFormat.fileType.preferredFilenameExtension ?? "heic")"
                 PHAssetCreationRequest.forAsset().addResource(with: .photo, data: encodedData, options: opts)
 
                 if keepRawDNG && isRaw {
                     let rawOpts = PHAssetResourceCreationOptions()
                     rawOpts.uniformTypeIdentifier = UTType.dng.identifier
-                    rawOpts.originalFilename = "SpekraVideo_\(UUID().uuidString).dng"
+                    rawOpts.originalFilename = "SpektraVideo_\(UUID().uuidString).dng"
                     PHAssetCreationRequest.forAsset().addResource(with: .photo, data: data, options: rawOpts)
                 }
             }, completionHandler: { [weak self] success, _ in
@@ -1743,7 +1743,7 @@ final class LogCameraController: NSObject, ObservableObject {
         if filmAssetWriter != nil { return }
 
         let ts = Int(Date().timeIntervalSince1970 * 1000)
-        let filmURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("SpekraVideo_\(ts).mov")
+        let filmURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("SpektraVideo_\(ts).mov")
         try? FileManager.default.removeItem(at: filmURL)
         guard let writer = try? AVAssetWriter(outputURL: filmURL, fileType: .mov) else { return }
 

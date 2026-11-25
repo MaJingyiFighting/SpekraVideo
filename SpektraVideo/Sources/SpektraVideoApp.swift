@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct SpekraVideoApp: App {
+struct SpektraVideoApp: App {
     var body: some Scene {
         WindowGroup {
             CameraMainView()

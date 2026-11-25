@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: |
-  SpekraVideo is a native iOS camera and real-time Metal spectral film engine
+  SpektraVideo is a native iOS camera and real-time Metal spectral film engine
   built on Andrea Volpato's `spektrafilm` and Hanze Qiu's `SpektraLab` C++
   engine core.
 
@@ -9,15 +9,15 @@ message: |
   project's contribution; see the `references` section below and
   https://github.com/andreavolpato/spektrafilm.
 
-  SpekraVideo is GPL-3.0-or-later; the film and paper profiles and the LUTs
+  SpektraVideo is GPL-3.0-or-later; the film and paper profiles and the LUTs
   baked from them are CC BY-SA 4.0 and remain Andrea Volpato's work (with 4
-  measured B&W profiles by Hanze Qiu). SpekraVideo is an independent open-source
+  measured B&W profiles by Hanze Qiu). SpektraVideo is an independent open-source
   iOS project and is not affiliated with or endorsed by the spektrafilm or
   SpektraLab projects.
 
-title: "SpekraVideo: an iOS camera for real-time Apple Log spectral film and print simulation"
+title: "SpektraVideo: an iOS camera for real-time Apple Log spectral film and print simulation"
 abstract: |
-  SpekraVideo captures 10-bit Apple Log video and 48 MP ProRAW / Bayer RAW still
+  SpektraVideo captures 10-bit Apple Log video and 48 MP ProRAW / Bayer RAW still
   photographs on iPhone and develops them in real time through a virtual film
   negative and darkroom print on the GPU using Metal.
 
@@ -42,7 +42,7 @@ references:
         given-names: "Andrea"
     url: "https://github.com/andreavolpato/spektrafilm"
     abstract: |
-      The spectral film and print simulation rendered by SpekraVideo. Source of
+      The spectral film and print simulation rendered by SpektraVideo. Source of
       the measured film and paper profiles, characteristic curves, DIR-coupler
       and halation models, and the RA-4 print and scan chain.
   - type: "software"
